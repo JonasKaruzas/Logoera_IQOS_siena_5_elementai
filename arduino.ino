@@ -13,22 +13,15 @@
 
 Adafruit_NeoPixel strip(NUM_LEDS, LED_PIN, NEO_GRB + NEO_KHZ800);
 
-// LED Groups
-const uint8_t groupStarts[] = {0, 42, 52, 62, 72, 82}; // 0-based indexing
-const uint8_t groupEnds[]   = {41, 51, 61, 71, 81, 91}; // inclusive
+const uint8_t groupStarts[] = {0, 42, 52, 62, 72, 82};
+const uint8_t groupEnds[]   = {41, 51, 61, 71, 81, 91};
 
-#define NUM_MODES 9
+#define NUM_MODES 3
 /*
   Modes:
   0 - Blink groups 2–6 (Group 1 always on)
   1 - Fade groups 2–6 (Group 1 always on)
-  2 - Fade all groups (including Group 1)
-  3 - Blink all groups (including Group 1)
-  4 - Crossfade all groups
-  5 - Crossfade groups 2–6 (Group 1 always on)
-  6 - Random blink (like Mode 0)
-  7 - Random fade (like Mode 1)
-  8 - Random crossfade (like Mode 5)
+  2 - Crossfade groups 2–6 (Group 1 always on)
 */
 
 uint8_t currentMode = 0;
@@ -93,32 +86,23 @@ void updateAnimation() {
   if (now - lastUpdate < speed) return;
   lastUpdate = now;
 
-  bool fade = (currentMode == 1 || currentMode == 2 || currentMode == 7);
-  bool crossfade = (currentMode == 4 || currentMode == 5 || currentMode == 8);
-  bool includeGroup1 = (currentMode >= 2 && currentMode <= 4) || currentMode == 7;
-  bool isRandomStep = (currentMode >= 6);
+  strip.clear();
 
-  int startIndex = (includeGroup1 || crossfade) ? 0 : 1;
+  bool fade = currentMode == 1;
+  bool isCrossfade = currentMode == 2;
+  int startIndex = 1;
   int endIndex = 5;
 
-  if (animationStep == 0 && isRandomStep) {
-    shuffleOrder(startIndex, endIndex);
-  }
+  int groupIndex = startIndex + animationStep;
+  int nextGroup = (groupIndex + 1 > endIndex) ? startIndex : groupIndex + 1;
 
-  int groupIndex = isRandomStep ? randomOrder[animationStep] : (startIndex + animationStep);
-  int nextGroup = isRandomStep ? randomOrder[(animationStep + 1 > (endIndex - startIndex)) ? 0 : animationStep + 1]
-                               : ((groupIndex + 1 > endIndex) ? startIndex : groupIndex + 1);
+  fillGroup(0, red, green, blue, brightness); // Group 1 always on
 
-  if (crossfade) {
-    if (currentMode == 5 || currentMode == 8) fillGroup(0, red, green, blue, brightness);  // Group 1 always on
-
+  if (isCrossfade) {
     for (float t = 0; t <= 1.0; t += 0.02) {
-      strip.clear();
-      if (currentMode == 5 || currentMode == 8) fillGroup(0, red, green, blue, brightness);
-
+      fillGroup(0, red, green, blue, brightness); // Keep Group 1 always on during crossfade
       float tOut = 1.0 - t;
       float tIn = t;
-
       fillGroup(groupIndex, red * tOut, green * tOut, blue * tOut, brightness * tOut);
       fillGroup(nextGroup, red * tIn, green * tIn, blue * tIn, brightness * tIn);
       strip.show();
@@ -126,25 +110,20 @@ void updateAnimation() {
     }
   }
   else if (fade) {
-    if (!includeGroup1) fillGroup(0, red, green, blue, brightness);
     for (float t = 0; t <= 1.0; t += 0.05) {
-      strip.clear();
-      if (!includeGroup1) fillGroup(0, red, green, blue, brightness);
+      fillGroup(0, red, green, blue, brightness); // Keep Group 1 always on
       fillGroup(groupIndex, red * t, green * t, blue * t, brightness * t);
       strip.show();
       delay(15);
     }
     for (float t = 1.0; t >= 0.0; t -= 0.05) {
-      strip.clear();
-      if (!includeGroup1) fillGroup(0, red, green, blue, brightness);
+      fillGroup(0, red, green, blue, brightness); // Keep Group 1 always on
       fillGroup(groupIndex, red * t, green * t, blue * t, brightness * t);
       strip.show();
       delay(15);
     }
   }
-  else {  // Blink
-    strip.clear();
-    if (!includeGroup1) fillGroup(0, red, green, blue, brightness);
+  else {
     fillGroup(groupIndex, red, green, blue, brightness);
     strip.show();
     delay(speed);
@@ -153,7 +132,6 @@ void updateAnimation() {
   animationStep++;
   if (animationStep > (endIndex - startIndex)) {
     animationStep = 0;
-    if (isRandomStep) shuffleOrder(startIndex, endIndex);
   }
 }
 
