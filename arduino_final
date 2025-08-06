@@ -1,0 +1,126 @@
+#include <Adafruit_NeoPixel.h>
+#include <EEPROM.h>
+
+#define LED_PIN     7
+//#define BUTTON_PIN  13
+#define NUM_LEDS    92
+
+#define POT_R       A0
+#define POT_G       A1
+#define POT_B       A2
+#define POT_BRIGHT  A3
+#define POT_SPEED   A6
+
+#define MODE_ADDRESS 0
+
+Adafruit_NeoPixel strip(NUM_LEDS, LED_PIN, NEO_GRB + NEO_KHZ800);
+
+const int groupStarts[6] = {0, 42, 52, 62, 72, 82};
+const int groupEnds[6]   = {41, 51, 61, 71, 81, 91};
+
+//bool lastButtonState = HIGH;
+//unsigned long lastDebounceTime = 0;
+//const unsigned long debounceDelay = 50;
+
+int animGroup = 1;
+bool animDirection = false;
+unsigned long lastAnimTime = 0;
+int fadeValue = 0;
+
+unsigned long groupDelay = 500;
+unsigned long lastGroupChange = 0;
+bool groupDone = false;
+
+uint8_t potR = 0, potG = 0, potB = 0, potBrightness = 0;
+int fadeSpeed = 10;
+
+void setup() {
+  strip.begin();
+  strip.show();
+//  pinMode(BUTTON_PIN, INPUT_PULLUP);
+  setAllGroups();
+}
+
+void loop() {
+  readPotentiometers();
+//  checkButton();
+  runFadeAnimation();
+}
+
+void readPotentiometers() {
+  potR = analogRead(POT_R) / 4;
+  potG = analogRead(POT_G) / 4;
+  potB = analogRead(POT_B) / 4;
+  potBrightness = analogRead(POT_BRIGHT) / 4;
+  groupDelay = map(analogRead(POT_SPEED), 0, 1023, 50, 4000);
+}
+
+// void checkButton() {
+//   bool reading = digitalRead(BUTTON_PIN);
+//   if (reading != lastButtonState) {
+//     lastDebounceTime = millis();
+//   }
+// 
+//   if ((millis() - lastDebounceTime) > debounceDelay) {
+//     if (lastButtonState == HIGH && reading == LOW) {
+//       animGroup = 1;
+//       animDirection = false;
+//       fadeValue = 0;
+//       setAllGroups();
+//     }
+//   }
+//   lastButtonState = reading;
+// }
+
+void setAllGroups() {
+  for (int g = 0; g < 6; g++) {
+    setGroupColor(g, potR, potG, potB, potBrightness);
+  }
+  strip.show();
+}
+
+void setGroupColor(int group, uint8_t r, uint8_t g, uint8_t b, uint8_t brightness) {
+  float scale = brightness / 255.0;
+  for (int i = groupStarts[group]; i <= groupEnds[group]; i++) {
+    strip.setPixelColor(i, strip.Color(r * scale, g * scale, b * scale));
+  }
+}
+
+void runFadeAnimation() {
+  unsigned long now = millis();
+
+  if (!groupDone && (now - lastAnimTime >= fadeSpeed)) {
+    lastAnimTime = now;
+
+    float factor = (animDirection ? fadeValue : (255 - fadeValue)) / 255.0;
+    float scale = potBrightness / 255.0;
+
+    for (int i = groupStarts[animGroup]; i <= groupEnds[animGroup]; i++) {
+      strip.setPixelColor(i, strip.Color(potR * factor * scale,
+                                         potG * factor * scale,
+                                         potB * factor * scale));
+    }
+
+    setGroupColor(0, potR, potG, potB, potBrightness);
+    strip.show();
+
+    fadeValue += 5;
+    if (fadeValue > 255) {
+      fadeValue = 0;
+      animDirection = !animDirection;
+
+      if (!animDirection) {
+        groupDone = true;
+        lastGroupChange = now;
+      }
+    }
+  }
+
+  if (groupDone && (now - lastGroupChange >= groupDelay)) {
+    animGroup++;
+    if (animGroup > 5) animGroup = 1;
+    animDirection = false;
+    fadeValue = 0;
+    groupDone = false;
+  }
+}
