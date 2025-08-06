@@ -14,17 +14,16 @@ a6 - animation speed.
 button controlls animation mode.
 
 leds are divided into 6 groups:
-group 1 - led 1 to 42,
-group 2 - 43 to 53,
-group 3 - 54 to 64,
-group 4 - 65 to 75,
-group 5 - 76 to 86,
-group 6 - 87 to 97
+group 1 - led 0 to 41,
+group 2 - 42 to 51,
+group 3 - 52 to 61,
+group 4 - 62 to 71,
+group 5 - 72 to 81,
+group 6 - 82 to 91
 
 animation modes:
-1 - group 1 is always on, but other groups one by one turn on (only one at a time),
-2 - group 1 is always on, but other groups one by one turn on (only one at a time) but smoothly with fadein fade out.
-3 - same as 1 but including group 1,
-4 - same as 2 but including group 2.
+1 - All groups are on. Group 1 always stays on, but from group 2 to group 6, one by one fades off, and fades in, one at a time. example - group 2 fades off, group 2 fades on, group 3 fades off, group 3 fades on, group 4 fades off, group 4 fades on ...
+
+2 - All groups are on. Group 1 always stays on, but from group 2 to group 6, one by one crossfades. example - group 2 fades off, group 2 fades in and in the same time group 3 fades off, group 3 fades in and in the same time as group 4 fades out ...
 
 Mode selector needs to save to memory, so it's the same even if the device gets reset
